@@ -78,6 +78,7 @@ jobs:
       # and all previous steps passed.
       - name: Create PR to main (tests passed)
         if: success() && github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.branch, 'feature/')
+        continue-on-error: true  # PR creation failure must not mark the test run as failed
         env:
           BRANCH: ${{ github.event.inputs.branch }}
           STORY: ${{ github.event.inputs.story_key }}
