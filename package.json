@@ -11,7 +11,6 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^10.3.1",
-    "@cucumber/junit-formatter": "^1.0.0",
     "@cucumber/pretty-formatter": "^1.0.1",
     "@playwright/test": "^1.44.0",
     "playwright": "^1.44.0",
