@@ -73,50 +73,58 @@ jobs:
           path: test-results/traces/
           retention-days: 7
 
-      # ── Auto-create PR to main when tests pass on a feature branch ─────────
-      # Only runs when:
-      #   • Triggered via workflow_dispatch (by the JIRA CI Agent)
-      #   • The target branch starts with "feature/"
-      #   • All tests passed (if: success())
+      # Auto-create PR to main when tests pass on a feature branch.
+      # Only runs when triggered via workflow_dispatch from a feature/ branch
+      # and all previous steps passed.
       - name: Create PR to main (tests passed)
         if: success() && github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.branch, 'feature/')
+        env:
+          BRANCH: ${{ github.event.inputs.branch }}
+          STORY: ${{ github.event.inputs.story_key }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="${{ github.event.inputs.branch }}"
-          STORY="${{ github.event.inputs.story_key }}"
-
-          # Build PR title
           if [ -n "$STORY" ]; then
-            PR_TITLE="[$STORY] AI-generated tests — ${BRANCH#feature/}"
+            PR_TITLE="[$STORY] Auto-generated tests - ${BRANCH#feature/}"
           else
-            PR_TITLE="AI-generated tests — ${BRANCH#feature/}"
+            PR_TITLE="Auto-generated tests - ${BRANCH#feature/}"
           fi
 
-          # Check if a PR already exists for this branch
-          EXISTING=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --state open \
+            --json number --jq '.[0].number' 2>/dev/null || true)
 
           if [ -n "$EXISTING" ]; then
-            echo "✅  PR #$EXISTING already exists for branch $BRANCH — skipping creation."
+            echo "PR #$EXISTING already exists for branch $BRANCH - skipping."
           else
-            echo "🔀  Creating PR: $PR_TITLE"
+            # Write PR body to a temp file to keep this run: block
+            # properly indented (avoids YAML literal-block truncation).
+            cat > /tmp/pr_body.md << PREOF
+          ## Auto-generated Test PR
+
+          **JIRA story:** ${STORY:-N/A}
+          **Feature branch:** \`$BRANCH\`
+
+          All tests passed. This PR was automatically created by the
+          [Test Automation Agent](https://github.com/achaljoshi/test-automation-agent).
+
+          ### What's in this PR
+          - Gherkin feature file generated from the JIRA acceptance criteria
+          - Playwright step definitions (TypeScript + Cucumber.js)
+          - Page Object class (if 3+ page interactions)
+
+          ### Test run
+          All tests passed - [view CI run]($RUN_URL)
+
+          ### Review checklist
+          - [ ] Feature file scenarios match the acceptance criteria
+          - [ ] Step definitions compile without errors
+          - [ ] Tests pass locally (npm test)
+          PREOF
+
             gh pr create \
               --title "$PR_TITLE" \
-              --body "## 🤖 Auto-generated Test PR
-
-**JIRA story:** ${STORY:-N/A}
-**Feature branch:** \`$BRANCH\`
-
-All tests passed on the feature branch. This PR was automatically created by the [Test Automation Agent](https://github.com/achaljoshi/test-automation-agent).
-
-### What's in this PR
-- Gherkin \`.feature\` file generated from the JIRA acceptance criteria
-- Playwright step definitions (TypeScript + Cucumber.js)
-- Page Object class (if 3+ page interactions)
-
-### Test run
-✅ All tests passed — see the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details." \
+              --body-file /tmp/pr_body.md \
               --base main \
               --head "$BRANCH"
-            echo "✅  PR created successfully."
+            echo "PR created successfully."
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
