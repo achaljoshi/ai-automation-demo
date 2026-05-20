@@ -1,18 +1,8 @@
 name: Playwright + Cucumber Tests
 
 on:
-  # Run on every push to main and feature branches
-  push:
-    branches:
-      - main
-      - 'feature/**'
-
-  # Run on pull requests to main
-  pull_request:
-    branches:
-      - main
-
-  # Allow the JIRA pipeline (CI Agent) to trigger this workflow via API
+  # Triggered by the JIRA CI Agent after pushing generated tests to a feature branch.
+  # When tests pass on the feature branch, this workflow auto-creates a PR to main.
   workflow_dispatch:
     inputs:
       story_key:
@@ -20,9 +10,15 @@ on:
         required: false
         default: ''
       branch:
-        description: 'Branch to run tests on'
+        description: 'Feature branch that contains the generated tests'
         required: false
         default: 'main'
+
+  # Validate tests when a PR to main is opened or updated.
+  # Prevents merging a feature branch whose tests are failing.
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
@@ -76,3 +72,51 @@ jobs:
           name: playwright-traces
           path: test-results/traces/
           retention-days: 7
+
+      # ── Auto-create PR to main when tests pass on a feature branch ─────────
+      # Only runs when:
+      #   • Triggered via workflow_dispatch (by the JIRA CI Agent)
+      #   • The target branch starts with "feature/"
+      #   • All tests passed (if: success())
+      - name: Create PR to main (tests passed)
+        if: success() && github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.branch, 'feature/')
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          STORY="${{ github.event.inputs.story_key }}"
+
+          # Build PR title
+          if [ -n "$STORY" ]; then
+            PR_TITLE="[$STORY] AI-generated tests — ${BRANCH#feature/}"
+          else
+            PR_TITLE="AI-generated tests — ${BRANCH#feature/}"
+          fi
+
+          # Check if a PR already exists for this branch
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            echo "✅  PR #$EXISTING already exists for branch $BRANCH — skipping creation."
+          else
+            echo "🔀  Creating PR: $PR_TITLE"
+            gh pr create \
+              --title "$PR_TITLE" \
+              --body "## 🤖 Auto-generated Test PR
+
+**JIRA story:** ${STORY:-N/A}
+**Feature branch:** \`$BRANCH\`
+
+All tests passed on the feature branch. This PR was automatically created by the [Test Automation Agent](https://github.com/achaljoshi/test-automation-agent).
+
+### What's in this PR
+- Gherkin \`.feature\` file generated from the JIRA acceptance criteria
+- Playwright step definitions (TypeScript + Cucumber.js)
+- Page Object class (if 3+ page interactions)
+
+### Test run
+✅ All tests passed — see the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details." \
+              --base main \
+              --head "$BRANCH"
+            echo "✅  PR created successfully."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
