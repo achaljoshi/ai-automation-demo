@@ -51,7 +51,7 @@ jobs:
       - name: Run Cucumber tests
         run: npm test
         env:
-          BASE_URL: ${{ vars.BASE_URL || 'http://localhost:3000' }}
+          BASE_URL: ${{ vars.BASE_URL || 'https://practicetestautomation.com' }}
           BROWSER: chromium
           HEADED: false
 
