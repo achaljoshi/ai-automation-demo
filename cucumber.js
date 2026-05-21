@@ -17,8 +17,9 @@ module.exports = {
       "junit:test-results/cucumber-junit.xml"
     ],
 
-    // Parallel execution (set to 1 for debugging)
-    parallel: 2,
+    // Run sequentially — prevents race conditions when all scenarios hit the
+    // same external site and avoids interleaved output in the pretty-formatter.
+    parallel: 1,
 
     // Retry failed tests once
     retry: 1,
