@@ -6,9 +6,6 @@ export class LoginPage {
   readonly passwordInput: Locator;
   readonly submitButton: Locator;
   readonly errorMessage: Locator;
-  readonly successHeading: Locator;
-  readonly successMessage: Locator;
-  readonly logoutLink: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -16,9 +13,6 @@ export class LoginPage {
     this.passwordInput = page.getByLabel('Password');
     this.submitButton = page.getByRole('button', { name: 'Submit' });
     this.errorMessage = page.locator('#error');
-    this.successHeading = page.getByRole('heading', { name: 'Logged In Successfully' });
-    this.successMessage = page.getByText('Congratulations student. You successfully logged in!');
-    this.logoutLink = page.getByRole('link', { name: 'Log out' });
   }
 
   async navigate(): Promise<void> {
@@ -33,7 +27,7 @@ export class LoginPage {
     await this.passwordInput.fill(password);
   }
 
-  async submit(): Promise<void> {
+  async clickSubmit(): Promise<void> {
     await this.submitButton.click({ noWaitAfter: true });
   }
 
@@ -41,14 +35,8 @@ export class LoginPage {
     await expect(this.errorMessage).toContainText(message);
   }
 
-  async expectSuccessfulLogin(): Promise<void> {
-    await expect(this.successHeading).toBeVisible();
-    await expect(this.successMessage).toBeVisible();
-    await expect(this.logoutLink).toBeVisible();
-  }
-
-  async expectPasswordMasking(): Promise<void> {
+  async expectPasswordMasked(): Promise<void> {
     const inputType = await this.passwordInput.getAttribute('type');
-    expect(inputType, 'Password field should have type="password"').toBe('password');
+    expect(inputType).toBe('password');
   }
 }
