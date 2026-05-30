@@ -27,7 +27,7 @@ need to configure once**.
 | Step | Who | Where | What |
 |------|-----|-------|------|
 | 1–2 | JIRA agent | **Agents Web App** (Azure) or local `jira_run.py` | Reads JIRA, writes `.feature` + steps, pushes to `feature/…` |
-| 3 | Same agent | Calls GitHub API | Triggers `workflow_dispatch` on **this repo** (`main` branch) |
+| 3 | Same agent | Calls GitHub API | Triggers `workflow_dispatch` on the **feature branch** (Actions UI shows `feature/…`, not `main`) |
 | 4 | GitHub Actions | **This repo** → Actions → `playwright.yml` | Runs `npm test`; if green, runs `gh pr create` |
 
 **Important:** Steps 1–3 use credentials on the **agent** (Azure `GITHUB_*` env vars).

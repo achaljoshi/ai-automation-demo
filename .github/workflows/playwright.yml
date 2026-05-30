@@ -1,5 +1,8 @@
 name: Playwright + Cucumber Tests
 
+# Shown in the Actions list — makes the tested branch obvious for workflow_dispatch.
+run-name: Playwright + Cucumber Tests — ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
+
 on:
   # Triggered by the JIRA CI Agent after pushing generated tests to a feature branch.
   # When tests pass on the feature branch, this workflow auto-creates a PR to main.
