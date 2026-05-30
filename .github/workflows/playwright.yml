@@ -102,7 +102,10 @@ jobs:
           BRANCH: ${{ github.event.inputs.branch }}
           STORY: ${{ github.event.inputs.story_key }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN cannot open PRs unless repo setting "Allow GitHub Actions to
+          # create and approve pull requests" is enabled. Use PR_CREATE_TOKEN (PAT with
+          # repo scope) as a fallback — same token as JIRA agent GITHUB_TOKEN is fine.
+          GH_TOKEN: ${{ secrets.PR_CREATE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           if [ -n "$STORY" ]; then
             PR_TITLE="[$STORY] Auto-generated tests - ${BRANCH#feature/}"
@@ -141,10 +144,18 @@ jobs:
           - [ ] Tests pass locally (npm test)
           PREOF
 
-            gh pr create \
+            if gh pr create \
               --title "$PR_TITLE" \
               --body-file /tmp/pr_body.md \
               --base main \
-              --head "$BRANCH"
-            echo "PR created successfully."
+              --head "$BRANCH"; then
+              echo "PR created successfully."
+            else
+              echo "::warning::Could not create PR automatically."
+              echo "Fix (choose one):"
+              echo "  1. Repo Settings → Actions → General → enable"
+              echo "     'Allow GitHub Actions to create and approve pull requests'"
+              echo "  2. Add repository secret PR_CREATE_TOKEN (PAT with repo scope)"
+              exit 1
+            fi
           fi
