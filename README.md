@@ -92,7 +92,27 @@ The agent will:
 2. Generate `.feature` + step definitions using AI
 3. Push to a `feature/proj-123-...` branch
 4. Trigger this GitHub Actions workflow
-5. Send you the test report
+5. **If tests pass** — open a Pull Request to `main` (see below)
+6. Send you the test report
+
+---
+
+## Auto-PR after green CI
+
+When all tests pass, `.github/workflows/playwright.yml` runs `gh pr create` from the
+feature branch to `main`.
+
+**Full setup guide (where to click in GitHub and Azure):**  
+→ **[docs/AUTO_PR_SETUP.md](docs/AUTO_PR_SETUP.md)**
+
+Quick summary:
+
+| What | Where |
+|------|--------|
+| Agent pushes tests + triggers CI | Azure **qforge-agents** app settings: `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_WORKFLOW` |
+| Workflow opens the PR | **This repo** → Settings → Secrets → Actions → `PR_CREATE_TOKEN` (PAT with `repo` scope), **or** enable “Allow GitHub Actions to create and approve pull requests” under Settings → Actions → General |
+
+You only configure this once. After that, each successful JIRA run can open a PR automatically.
 
 ---
 
