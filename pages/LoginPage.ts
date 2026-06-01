@@ -41,7 +41,7 @@ export class LoginPage {
     await expect(this.logoutLink).toBeVisible();
   }
 
-  async expectPasswordMasked(): Promise<void> {
-    await expect(this.passwordInput).toHaveAttribute('type', 'password');
+  async expectPasswordFieldType(expectedType: string): Promise<void> {
+    await expect(this.passwordInput).toHaveAttribute('type', expectedType);
   }
 }

@@ -1,4 +1,5 @@
 import { Given, When, Then } from '@cucumber/cucumber';
+import { expect } from '@playwright/test';
 import { ICustomWorld } from '../support/world';
 import { LoginPage } from '../pages/LoginPage';
 
@@ -7,26 +8,19 @@ Given('the user is on the login page', async function (this: ICustomWorld) {
   await loginPage.navigate();
 });
 
-When('the user fills in {string} with {string}', async function (this: ICustomWorld, field: string, value: string) {
+When('the user enters the username {string}', async function (this: ICustomWorld, username: string) {
   const loginPage = new LoginPage(this.page);
-
-  if (field === 'Username') {
-    await loginPage.fillUsername(value);
-  } else if (field === 'Password') {
-    await loginPage.fillPassword(value);
-  } else {
-    throw new Error(`Unknown field: ${field}`);
-  }
+  await loginPage.fillUsername(username);
 });
 
-When('the user clicks the {string} button', async function (this: ICustomWorld, button: string) {
+When('the user enters the password {string}', async function (this: ICustomWorld, password: string) {
   const loginPage = new LoginPage(this.page);
+  await loginPage.fillPassword(password);
+});
 
-  if (button === 'Submit') {
-    await loginPage.clickSubmit();
-  } else {
-    throw new Error(`Unknown button: ${button}`);
-  }
+When('the user clicks the {string} button', async function (this: ICustomWorld, buttonName: string) {
+  const loginPage = new LoginPage(this.page);
+  await loginPage.clickSubmit();
 });
 
 Then('the page URL should contain {string}', async function (this: ICustomWorld, urlPart: string) {
@@ -43,20 +37,15 @@ Then('the user should see the message {string}', async function (this: ICustomWo
 
 Then('the {string} link should be visible', async function (this: ICustomWorld, linkName: string) {
   const loginPage = new LoginPage(this.page);
-
-  if (linkName === 'Log out') {
-    await loginPage.expectLogoutLinkVisible();
-  } else {
-    throw new Error(`Unknown link: ${linkName}`);
-  }
+  await loginPage.expectLogoutLinkVisible();
 });
 
-Then('the error message {string} should be displayed', async function (this: ICustomWorld, message: string) {
+Then('the error message {string} should be displayed', async function (this: ICustomWorld, errorMessage: string) {
   const loginPage = new LoginPage(this.page);
-  await loginPage.expectError(message);
+  await loginPage.expectError(errorMessage);
 });
 
-Then('the password field should have the type {string}', async function (this: ICustomWorld, type: string) {
+Then('the password field should have the type {string}', async function (this: ICustomWorld, expectedType: string) {
   const loginPage = new LoginPage(this.page);
-  await loginPage.expectPasswordMasked();
+  await loginPage.expectPasswordFieldType(expectedType);
 });
