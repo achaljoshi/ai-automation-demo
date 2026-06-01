@@ -14,7 +14,8 @@ module.exports = {
     format: [
       "progress-bar",
       "@cucumber/pretty-formatter",
-      "junit:test-results/cucumber-junit.xml"
+      "junit:test-results/cucumber-junit.xml",
+      "html:test-results/cucumber-report.html"
     ],
 
     // Run sequentially — prevents race conditions when all scenarios hit the
