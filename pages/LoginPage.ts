@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 
 export class LoginPage {
   readonly page: Page;
@@ -17,7 +17,7 @@ export class LoginPage {
     this.logoutLink = page.getByRole('link', { name: 'Log out' });
   }
 
-  async navigate(): Promise<void> {
+  async navigateToLoginPage(): Promise<void> {
     await this.page.goto('/practice-test-login/', { waitUntil: 'domcontentloaded' });
   }
 
@@ -29,19 +29,15 @@ export class LoginPage {
     await this.passwordInput.fill(password);
   }
 
-  async clickSubmit(): Promise<void> {
+  async clickSubmitButton(): Promise<void> {
     await this.submitButton.click({ noWaitAfter: true });
   }
 
-  async expectError(message: string): Promise<void> {
+  async expectErrorMessage(message: string): Promise<void> {
     await expect(this.errorMessage).toContainText(message);
   }
 
   async expectLogoutLinkVisible(): Promise<void> {
     await expect(this.logoutLink).toBeVisible();
-  }
-
-  async expectPasswordFieldType(expectedType: string): Promise<void> {
-    await expect(this.passwordInput).toHaveAttribute('type', expectedType);
   }
 }
