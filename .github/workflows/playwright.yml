@@ -94,9 +94,11 @@ jobs:
       # ── Publish test results as a GitHub Check ────────────────────────────
       # Creates a "Cucumber Tests" Check Run on the commit with individual
       # scenario pass/fail visible directly in the Actions UI and on the PR.
+      # Only runs when the XML file was actually produced — skips gracefully
+      # on TypeScript compile errors where no test run occurred.
       - name: Publish test results
         uses: dorny/test-reporter@v1
-        if: always()
+        if: always() && hashFiles('test-results/cucumber-junit.xml') != ''
         with:
           name: 'Cucumber Tests'
           path: 'test-results/cucumber-junit.xml'
