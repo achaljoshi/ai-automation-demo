@@ -28,7 +28,7 @@ BeforeAll(async function () {
   // Global setup (optional)
 });
 
-Before(async function (this: ICustomWorld) {
+Before({ tags: 'not @api' }, async function (this: ICustomWorld) {
   const launcher = { chromium, firefox, webkit }[BROWSER] ?? chromium;
   this.browser = await launcher.launch({ headless: !HEADED });
   this.context = await this.browser.newContext({ baseURL: BASE_URL, viewport: VIEWPORT });

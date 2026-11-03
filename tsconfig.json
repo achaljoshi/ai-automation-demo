@@ -14,7 +14,8 @@
   "include": [
     "step_definitions/**/*.ts",
     "support/**/*.ts",
-    "pages/**/*.ts"
+    "pages/**/*.ts",
+    "api/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }
