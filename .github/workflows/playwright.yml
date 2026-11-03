@@ -156,8 +156,8 @@ jobs:
 
           ### What's in this PR
           - Gherkin feature file generated from the JIRA acceptance criteria
-          - Playwright step definitions (TypeScript + Cucumber.js)
-          - Page Object class (if 3+ page interactions)
+          - Playwright step definitions (TypeScript + Cucumber.js) — only for steps no shared step covers
+          - Page Object class (UI stories) or API client (API stories), when needed
 
           ### Test run
           All tests passed - [view CI run]($RUN_URL)
@@ -169,6 +169,11 @@ jobs:
           - [ ] Step definitions compile without errors
           - [ ] Tests pass locally (npm test)
           PREOF
+            # The agent's commit body: Jira link and, for API stories, the shared steps used.
+            DETAILS=$(git log -1 --format=%b | sed '/^Co-Authored-By/d')
+            if [ -n "$DETAILS" ]; then
+              printf '\n### From the agent\n%s\n' "$DETAILS" >> /tmp/pr_body.md
+            fi
 
             if gh pr create \
               --title "$PR_TITLE" \
