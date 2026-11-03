@@ -70,8 +70,26 @@ npm run test:headed
 | `BASE_URL` | `http://localhost:3000` | Application under test |
 | `BROWSER` | `chromium` | Browser: chromium / firefox / webkit |
 | `HEADED` | `false` | Show browser window |
+| `API_BASE_URL` | `https://qforge-prod.azurewebsites.net/mock/api/v1` | Base URL for `@api` scenarios |
 
 Copy `.env.example` to `.env` and set your values.
+
+---
+
+## API Tests
+
+Scenarios in a feature tagged `@api` run over HTTP with Playwright's `APIRequestContext` — no
+browser is launched (the browser hook in `support/hooks.ts` skips `@api`).
+
+- `support/api.ts` — `IApiWorld`, `sendRequest()`, `fieldAt()` and `API_BASE_URL`
+- `step_definitions/common/api.steps.ts` — generic HTTP steps shared by every API story
+  (`When I send a GET request to "/accounts/1"`, `Then the response status should be 200`,
+  `And the response field "meta.count" should equal 4`, …). Don't redefine them in story files.
+- `api/` — API clients the JIRA agent generates for story-specific actions
+
+```bash
+npx cucumber-js --tags @api      # API scenarios only
+```
 
 ---
 
