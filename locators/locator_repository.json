@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "items": {
+    "scrum_1:user_login_with_username_and_password": {
+      "story_key": "SCRUM-1",
+      "story_summary": "User Login with Username and Password",
+      "locators": [
+        {
+          "name": "usernameInput",
+          "expression": "page.getByLabel('Username')"
+        },
+        {
+          "name": "passwordInput",
+          "expression": "page.getByLabel('Password')"
+        },
+        {
+          "name": "submitButton",
+          "expression": "page.getByRole('button', { name: 'Submit' })"
+        },
+        {
+          "name": "errorMessage",
+          "expression": "page.locator('#error')"
+        },
+        {
+          "name": "successHeading",
+          "expression": "page.getByRole('heading', { name: 'Logged In Successfully' })"
+        },
+        {
+          "name": "successMessage",
+          "expression": "page.getByText('Congratulations student. You successfully logged in!', { exact: true })"
+        },
+        {
+          "name": "logoutLink",
+          "expression": "page.getByRole('link', { name: 'Log out' })"
+        }
+      ]
+    }
+  }
+}
