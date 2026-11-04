@@ -14,13 +14,22 @@ const VIEWPORT           = (use.viewport as { width: number; height: number } | 
 const BROWSER = process.env.BROWSER || 'chromium';
 const HEADED  = process.env.HEADED  === 'true';
 
-// Cucumber per-step timeout — set equal to the navigation timeout so a slow
-// page.goto() / waitForURL() never gets killed by Cucumber before Playwright
-// has a chance to throw its own descriptive error message.
 setDefaultTimeout(NAVIGATION_TIMEOUT);
-
-// Global assertion retry timeout for all expect(locator).toBeVisible() etc.
 expect.configure({ timeout: ACTION_TIMEOUT });
+
+// Do not let a browser stuck in navigation block the entire teardown hook.
+async function boundedCleanup(operation: () => Promise<unknown>, timeoutMs: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      operation(),
+      new Promise<void>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Cleanup timed out')), timeoutMs);
+      }),
+    ]);
+  } catch { /* best-effort cleanup */ }
+  finally { if (timer) clearTimeout(timer); }
+}
 
 // ── Lifecycle hooks ────────────────────────────────────────────────────────────
 
@@ -34,24 +43,20 @@ Before({ tags: 'not @api' }, async function (this: ICustomWorld) {
   this.context = await this.browser.newContext({ baseURL: BASE_URL, viewport: VIEWPORT });
   this.page    = await this.context.newPage();
 
-  // Apply Playwright-level timeouts from playwright.config.ts.
-  // These govern goto(), waitForURL(), click()'s implicit nav-wait, etc.
   this.page.setDefaultNavigationTimeout(NAVIGATION_TIMEOUT);
   this.page.setDefaultTimeout(ACTION_TIMEOUT);
 });
 
-// timeout: 15_000 — must exceed the 5 s screenshot cap so cleanup always
-// completes even when the browser is left mid-navigation by a failed step.
 After({ timeout: 15_000 }, async function (this: ICustomWorld, scenario) {
-  if (scenario.result?.status === Status.FAILED) {
+  if (scenario.result?.status === Status.FAILED && this.page) {
     try {
-      // Hard cap on the screenshot so a hung page doesn't block cleanup.
-      const shot = await this.page.screenshot({ fullPage: true, timeout: 5_000 });
+      const shot = await this.page.screenshot({ fullPage: true, timeout: 3_000 });
       await this.attach(shot, 'image/png');
     } catch { /* skip silently */ }
   }
-  try { await this.context?.close(); } catch { /* ignore */ }
-  try { await this.browser?.close(); } catch { /* ignore */ }
+  // TODO: verify this fix — the retry's cleanup timed out while the page was mid-navigation.
+  if (this.context) await boundedCleanup(() => this.context.close(), 4_000);
+  if (this.browser) await boundedCleanup(() => this.browser.close(), 4_000);
 });
 
 AfterAll(async function () {
