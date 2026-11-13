@@ -1,21 +1,19 @@
 {
   "name": "ai-automation-repo",
   "version": "1.0.0",
-  "description": "AI-generated Playwright + Cucumber.js automation tests",
+  "description": "AI-generated Playwright + playwright-bdd automation tests",
   "scripts": {
-    "test": "cucumber-js",
-    "test:smoke": "cucumber-js --tags @smoke",
-    "test:regression": "cucumber-js --tags @regression",
-    "test:headed": "HEADED=true cucumber-js",
-    "lint": "tsc --noEmit"
+    "bddgen": "bddgen",
+    "test": "bddgen && playwright test",
+    "test:smoke": "bddgen && playwright test --grep @smoke",
+    "test:regression": "bddgen && playwright test --grep @regression",
+    "test:headed": "bddgen && playwright test --headed",
+    "lint": "bddgen && tsc --noEmit"
   },
   "devDependencies": {
-    "@cucumber/cucumber": "^10.3.1",
-    "@cucumber/html-formatter": "^21.0.0",
-    "@cucumber/pretty-formatter": "^1.0.1",
-    "@playwright/test": "^1.44.0",
-    "playwright": "^1.44.0",
-    "ts-node": "^10.9.2",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.10.5",
+    "playwright-bdd": "^9.2.1",
     "typescript": "^5.4.5"
   }
 }

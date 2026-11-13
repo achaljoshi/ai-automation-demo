@@ -1,7 +1,7 @@
-name: Playwright + Cucumber Tests
+name: Playwright BDD Tests
 
 # Shown in the Actions list — makes the tested branch obvious for workflow_dispatch.
-run-name: Playwright + Cucumber Tests — ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
+run-name: Playwright BDD Tests — ${{ github.event.inputs.branch || github.head_ref || github.ref_name }}
 
 on:
   # Triggered by the JIRA CI Agent after pushing generated tests to a feature branch.
@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   test:
-    name: Run Playwright + Cucumber Tests
+    name: Run Playwright BDD Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -49,19 +49,18 @@ jobs:
 
       # ── Install dependencies ───────────────────────────────────────────────
       - name: Install npm dependencies
-        run: npm install
+        run: npm ci
 
       # ── Playwright browsers ────────────────────────────────────────────────
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       # ── Run tests ──────────────────────────────────────────────────────────
-      - name: Run Cucumber tests
+      # npm test = bddgen (features -> Playwright tests in .features-gen) && playwright test
+      - name: Run Playwright BDD tests
         run: npm test
         env:
           BASE_URL: ${{ vars.BASE_URL || 'https://practicetestautomation.com' }}
-          BROWSER: chromium
-          HEADED: false
 
       # ── Upload test results (JUnit XML + HTML report) ────────────────────
       - name: Upload test results (JUnit XML)
@@ -73,15 +72,15 @@ jobs:
           retention-days: 30
 
       # ── Upload standalone HTML report ─────────────────────────────────────
-      # Uploads the Cucumber HTML report as a separate named artifact so the
+      # Uploads the Playwright HTML report as a separate named artifact so the
       # JIRA pipeline can include a direct download link in notifications.
       - name: Upload HTML report
         id: html-report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cucumber-html-report
-          path: test-results/cucumber-report.html
+          name: playwright-report
+          path: playwright-report/
           retention-days: 30
 
       # ── Output report URL for downstream steps / notifications ────────────
@@ -92,18 +91,18 @@ jobs:
           echo "REPORT_URL=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts" >> $GITHUB_ENV
 
       # ── Publish test results as a GitHub Check ────────────────────────────
-      # Creates a "Cucumber Tests" Check Run on the commit with individual
+      # Creates a "Playwright BDD Tests" Check Run on the commit with individual
       # scenario pass/fail visible directly in the Actions UI and on the PR.
       # Only runs when the XML file was actually produced — skips gracefully
       # on TypeScript compile errors where no test run occurred.
       - name: Publish test results
         uses: dorny/test-reporter@v1
-        if: always() && hashFiles('test-results/cucumber-junit.xml') != ''
+        if: always() && hashFiles('test-results/junit.xml') != ''
         with:
-          name: 'Cucumber Tests'
-          path: 'test-results/cucumber-junit.xml'
+          name: 'Playwright BDD Tests'
+          path: 'test-results/junit.xml'
           reporter: java-junit
-          # Don't fail the job when tests fail — the "Run Cucumber tests"
+          # Don't fail the job when tests fail — the "Run Playwright BDD tests"
           # step already controls the job outcome.
           fail-on-error: 'false'
 
@@ -113,7 +112,7 @@ jobs:
         if: failure()
         with:
           name: playwright-traces
-          path: test-results/traces/
+          path: test-results/**/trace.zip
           retention-days: 7
 
       # Auto-create PR to main when tests pass on a feature branch.
@@ -156,13 +155,13 @@ jobs:
 
           ### What's in this PR
           - Gherkin feature file generated from the JIRA acceptance criteria
-          - Playwright step definitions (TypeScript + Cucumber.js) — only for steps no shared step covers
+          - Step definitions (TypeScript, playwright-bdd) — only for steps no shared step covers
           - Page Object class (UI stories) or API client (API stories), when needed
 
           ### Test run
           All tests passed - [view CI run]($RUN_URL)
 
-          📊 [Download HTML Report]($RUN_URL#artifacts) — open `cucumber-html-report` artifact for full scenario details
+          📊 [Download HTML Report]($RUN_URL#artifacts) — open the `playwright-report` artifact for full scenario details
 
           ### Review checklist
           - [ ] Feature file scenarios match the acceptance criteria

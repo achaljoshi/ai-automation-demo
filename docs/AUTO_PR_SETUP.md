@@ -1,6 +1,6 @@
 # Auto-PR setup (when CI tests pass)
 
-When the JIRA pipeline finishes and **all Cucumber tests pass**, GitHub Actions can
+When the JIRA pipeline finishes and **all tests pass**, GitHub Actions can
 automatically open a Pull Request from the feature branch (e.g.
 `feature/scrum-1-user-login-...`) into `main`.
 

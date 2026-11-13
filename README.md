@@ -1,6 +1,6 @@
 # ai-automation-repo
 
-AI-generated Playwright + Cucumber.js automation tests, powered by the
+AI-generated Playwright + playwright-bdd automation tests, powered by the
 [Test Automation Agent](https://github.com/achaljoshi/test-automation-agent).
 
 Test files in this repo are automatically generated from JIRA stories
@@ -13,7 +13,7 @@ by the JIRA pipeline — no manual coding required.
 | Tool | Purpose |
 |------|---------|
 | [Playwright](https://playwright.dev/) | Browser automation |
-| [Cucumber.js](https://cucumber.io/docs/installation/javascript/) | BDD framework |
+| [playwright-bdd](https://vitalets.github.io/playwright-bdd/) | BDD: Gherkin features run by Playwright Test |
 | [TypeScript](https://www.typescriptlang.org/) | Language |
 | [GitHub Actions](https://docs.github.com/en/actions) | CI/CD |
 
@@ -31,12 +31,14 @@ ai-automation-repo/
 │   └── <story-key>_<name>.steps.ts  # Playwright step defs (AI-generated)
 ├── pages/
 │   └── <PageName>.ts         # Page Object classes (AI-generated, if needed)
+├── api/
+│   └── <Name>Client.ts       # API clients (AI-generated, if needed)
 ├── support/
-│   ├── world.ts              # Cucumber World + Playwright browser setup
-│   └── hooks.ts              # Before/After hooks, screenshot on failure
+│   ├── fixtures.ts           # The test every scenario runs in + Given/When/Then
+│   └── api.ts                # The `api` fixture: HTTP client and last response
 ├── package.json
 ├── tsconfig.json
-└── cucumber.js               # Cucumber configuration
+└── playwright.config.ts      # playwright-bdd (defineBddConfig) + Playwright settings
 ```
 
 ---
@@ -59,7 +61,35 @@ npm run test:regression
 
 # Run in headed mode (visible browser)
 npm run test:headed
+
+# One scenario, or a tag
+npx bddgen && npx playwright test --grep "Pipeline health check"
+npx bddgen && npx playwright test --grep @api
 ```
+
+`npm test` runs `bddgen` (turns the features into Playwright tests under `.features-gen/`) and
+then `playwright test`. Reports: `playwright-report/` (HTML) and `test-results/junit.xml`.
+
+### Writing steps
+
+Steps import Given/When/Then from `support/fixtures.ts` and take Playwright fixtures as the first
+argument — no World, no hooks:
+
+```typescript
+import { expect } from '@playwright/test';
+import { Given, Then } from '../support/fixtures';
+import { LoginPage } from '../pages/LoginPage';
+
+Given('the user is on the login page', async ({ page }) => {
+  await new LoginPage(page).navigate();
+});
+
+Then('the user should see the message {string}', async ({ page }, message: string) => {
+  await expect(page.getByText(message)).toBeVisible();
+});
+```
+
+A step defined twice, or a feature step with no definition, fails `bddgen` with the step's name.
 
 ---
 
@@ -68,7 +98,6 @@ npm run test:headed
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `BASE_URL` | `http://localhost:3000` | Application under test |
-| `BROWSER` | `chromium` | Browser: chromium / firefox / webkit |
 | `HEADED` | `false` | Show browser window |
 | `API_BASE_URL` | `https://qforge-prod.azurewebsites.net/mock/api/v1` | Base URL for `@api` scenarios |
 
@@ -78,17 +107,17 @@ Copy `.env.example` to `.env` and set your values.
 
 ## API Tests
 
-Scenarios in a feature tagged `@api` run over HTTP with Playwright's `APIRequestContext` — no
-browser is launched (the browser hook in `support/hooks.ts` skips `@api`).
+API scenarios (tagged `@api`) use the `api` fixture, an HTTP session on Playwright's `request`.
+Fixtures are lazy, so a scenario that never uses `page` never starts a browser.
 
-- `support/api.ts` — `IApiWorld`, `sendRequest()`, `fieldAt()` and `API_BASE_URL`
+- `support/api.ts` — `ApiSession`, `sendRequest()`, `fieldAt()` and `API_BASE_URL`
 - `step_definitions/common/api.steps.ts` — generic HTTP steps shared by every API story
   (`When I send a GET request to "/accounts/1"`, `Then the response status should be 200`,
   `And the response field "meta.count" should equal 4`, …). Don't redefine them in story files.
 - `api/` — API clients the JIRA agent generates for story-specific actions
 
 ```bash
-npx cucumber-js --tags @api      # API scenarios only
+npx bddgen && npx playwright test --grep @api      # API scenarios only
 ```
 
 ---

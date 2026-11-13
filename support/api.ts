@@ -1,22 +1,10 @@
 /**
- * API test support — scenarios tagged @api get `this.api` (a Playwright APIRequestContext)
- * instead of a browser. Written by the JIRA agent's API mode; edit freely.
+ * API test support: the `api` fixture (support/fixtures.ts) is an ApiSession around
+ * Playwright's `request` — no browser. Written by the JIRA agent's API mode; edit freely.
  *
  * Base URL: API_BASE_URL env var, else the QForge Demo Bank mock API.
  */
-import { After, Before } from '@cucumber/cucumber';
-import { APIRequestContext, APIResponse, request } from '@playwright/test';
-import { ICustomWorld } from './world';
-
-/** The world as seen by @api steps: `this: IApiWorld`. */
-export interface IApiWorld extends ICustomWorld {
-  api: APIRequestContext;
-  apiHeaders: Record<string, string>;
-  response?: APIResponse;
-  responseText?: string;
-  responseBody?: unknown;
-  responseMs?: number;
-}
+import { APIRequestContext, APIResponse } from '@playwright/test';
 
 export const API_BASE_URL = (process.env.API_BASE_URL || 'https://qforge-prod.azurewebsites.net/mock/api/v1').replace(/\/+$/, '');
 
@@ -38,35 +26,47 @@ export function fieldAt(body: unknown, path: string): unknown {
   return current;
 }
 
-/** Send a request with the scenario's headers and keep the response on the world. */
+/** One scenario's HTTP state: headers to send, and the last response. */
+export class ApiSession {
+  headers: Record<string, string> = { Accept: 'application/json' };
+  response?: APIResponse;
+  responseText?: string;
+  responseBody?: unknown;
+  responseMs?: number;
+
+  constructor(readonly request: APIRequestContext) {}
+
+  /** Field of the last JSON response at a dotted path. */
+  field(path: string): unknown {
+    return fieldAt(this.responseBody, path);
+  }
+
+  /** Status, URL and the start of the body: the message for a failed assertion. */
+  describe(): string {
+    return `${this.response?.status()} ${this.response?.url()}\n${(this.responseText || '').slice(0, 500)}`;
+  }
+}
+
+/** Send a request with the scenario's headers and keep the response on the session. */
 export async function sendRequest(
-  world: IApiWorld,
+  api: ApiSession,
   method: string,
   path: string,
   body?: unknown,
 ): Promise<APIResponse> {
   const started = Date.now();
-  const response = await world.api.fetch(apiUrl(path), {
+  const response = await api.request.fetch(apiUrl(path), {
     method: method.toUpperCase(),
-    headers: world.apiHeaders,
+    headers: api.headers,
     data: body,
   });
-  world.responseText = await response.text();
-  world.responseMs = Date.now() - started;
-  world.response = response;
+  api.responseText = await response.text();
+  api.responseMs = Date.now() - started;
+  api.response = response;
   try {
-    world.responseBody = world.responseText ? JSON.parse(world.responseText) : undefined;
+    api.responseBody = api.responseText ? JSON.parse(api.responseText) : undefined;
   } catch {
-    world.responseBody = undefined;
+    api.responseBody = undefined;
   }
   return response;
 }
-
-Before({ tags: '@api' }, async function (this: IApiWorld) {
-  this.apiHeaders = { Accept: 'application/json' };
-  this.api = await request.newContext();
-});
-
-After({ tags: '@api' }, async function (this: IApiWorld) {
-  await this.api?.dispose();
-});
